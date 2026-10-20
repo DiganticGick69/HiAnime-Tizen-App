@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+backend/data/
+build/
+*.wgt
+.buildResult/
+scratch.*
+.DS_Store

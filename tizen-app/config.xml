@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://github.com/hianime-tizen-app"
+        version="1.0.0"
+        viewmodes="maximized">
+    <tizen:application id="HiAnimeTV0.HiAnimeTV" package="HiAnimeTV0" required_version="5.0"/>
+    <name>HiAnime</name>
+    <description>Browse, search and watch anime from HiAnime with a TV-friendly interface.</description>
+    <author>HiAnime Tizen App</author>
+    <content src="index.html"/>
+    <icon src="icon.png"/>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <tizen:profile name="tv-samsung"/>
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable"
+                   encryption="disable" install-location="auto" hwkey-event="enable"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <tizen:privilege name="http://developer.samsung.com/privilege/network.public"/>
+    <!-- The app only talks to the backend on your LAN; its address is entered in Settings. -->
+    <access origin="*" subdomains="true"/>
+    <tizen:allow-navigation>*</tizen:allow-navigation>
+</widget>
