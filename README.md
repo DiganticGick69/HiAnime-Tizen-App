@@ -1,6 +1,11 @@
 # HiAnime Tizen App
 
-A Netflix-style TV app for browsing and watching anime from HiAnime (`hianimes.se` and its mirrors) on a Samsung Smart TV. It's built and tested for the **Samsung UN55RU7100 (2019, Tizen 5.0)**.
+A Netflix-style TV app for browsing and watching anime from HiAnime (`hianimes.se` and its mirrors) on a Samsung Smart TV. It targets the **Samsung UN55RU7100 (2019, Tizen 5.0)**.
+
+> **Status: moving to a TV-only app.** The current version needs a small backend server on your network (described below). The goal is an app that runs entirely on the TV, with no server.
+> Browsing, search, details and watch history can all run on the TV. Video is the open question: the video hosts only accept requests carrying their player's Referer header, which a TV app normally can't send.
+> The [`tv-playback-test/`](tv-playback-test/) app checks which playback method works on the real TV, and its results decide how the TV-only version plays episodes.
+> So far everything has been tested in a desktop browser only, not on the TV.
 
 - **Browse:** a spotlight banner, Continue Watching, Recommended for You, Trending, Latest Episodes, Most Popular, New on HiAnime, and category rows (Isekai, Action, Fantasy, Romance, Sci-Fi, and more).
 - **Search:** an on-screen keyboard driven by the remote, with live results.
@@ -125,8 +130,11 @@ tizen-app/
   js/nav.js          spatial navigation for the remote
   js/player.js       AVPlay engine (TV) / hls.js engine (desktop), OSD, subtitles
   js/views.js        Home, Details, Search, Categories, Watched, Settings
+tv-playback-test/    throwaway app that checks which video playback method works on the TV
 scripts/             setup, run, build/install, icon generator
 ```
+
+To build the test app instead of the main one: `APP_DIR=tv-playback-test ./scripts/build-wgt.sh <TV-IP>`.
 
 ## Disclaimer
 
