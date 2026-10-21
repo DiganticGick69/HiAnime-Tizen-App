@@ -96,7 +96,8 @@ var Engines = {
 function loadHlsJs(cb) {
     if (window.Hls) { cb(); return; }
     var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';
+    // Bundled with the app (see js/vendor/README.md), so no third-party script runs with the app's privileges.
+    s.src = 'js/vendor/hls.min.js';
     s.onload = cb;
     document.head.appendChild(s);
 }

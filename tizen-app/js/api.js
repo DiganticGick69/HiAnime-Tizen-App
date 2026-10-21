@@ -202,7 +202,10 @@ var Api = (function () {
         }
         return null;
     }
-    function img(u) { return typeof u === 'string' && /^https?:\/\//.test(u) ? u : null; }
+    /* Image URLs end up inside CSS url("..."), so refuse anything that could close that
+       string or the url() (quotes, parens, backslashes, whitespace, control chars). */
+    var IMG_RE = /^https?:\/\/[^\s"'()\\<>\x00-\x1f\x7f]+$/;
+    function img(u) { return typeof u === 'string' && IMG_RE.test(u) ? u : null; }
 
     function slim(a) {
         if (!a || typeof a !== 'object') return null;
@@ -589,7 +592,8 @@ var Api = (function () {
 
     /* --------------------------------------------------------- public API */
     return {
-        abs: function (u) { return u || ''; },
+        // Every CSS background goes through here; also covers records saved in history before img() got strict.
+        abs: function (u) { return img(u) || ''; },
         status: function () {
             return resolve(false).then(function () {
                 return { site: mirror.site, api: mirror.api, domains: candidates() };
