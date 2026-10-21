@@ -483,6 +483,41 @@ var Api = (function () {
 
     function isZoko(url) { return url.indexOf('://' + ZOKO_HOST + '/') > 0; }
 
+    /*
+     * Episodes carry up to ~40 subtitle tracks in any order, and nearly all are tagged
+     * lang "en" whatever the language, so tracks are told apart by label. Only English
+     * and Brazilian Portuguese are offered. Lower rank wins; null means never use.
+     */
+    function subRank(lang, label) {
+        var l = String(label || '').toLowerCase();
+        if (/forced/.test(l)) return null;  // signs and songs only
+        if (lang === 'en') {
+            if (!/^english\b/.test(l)) return null;
+            if (l === 'english') return 0;
+            if (/sdh/.test(l)) return 3;
+            return /cr\b|crunchyroll/.test(l) ? 1 : 2;
+        }
+        if (!/^portugu/.test(l) || /europe|portugal/.test(l)) return null;
+        if (/bra[sz]il/.test(l)) return 0;
+        return l === 'portuguese' ? 1 : 2;
+    }
+
+    function pickSubtitles(tracks) {
+        var out = [];
+        [['en', 'English'], ['pt', 'Português (BR)']].forEach(function (want) {
+            var best = null, bestRank = 99;
+            (tracks || []).forEach(function (t) {
+                if (!t || !t.src) return;
+                var r = subRank(want[0], t.label);
+                if (r === null) return;
+                if (t['default']) r -= 0.5;
+                if (r < bestRank) { best = t; bestRank = r; }
+            });
+            if (best) out.push({ lang: want[0], label: want[1], url: best.src });
+        });
+        return out;
+    }
+
     function stream(slug, ep, lang, server) {
         return embedLinks(slug, ep, lang).then(function (links) {
             var usable = links.filter(isZoko);
@@ -498,8 +533,7 @@ var Api = (function () {
                 return {
                     url: d.src,
                     referer: ZOKO_REFERER,
-                    subtitles: (d.subtitles || []).filter(function (s) { return s && s.src; })
-                        .map(function (s) { return { label: s.label || s.lang || 'Subtitles', url: s.src }; }),
+                    subtitles: pickSubtitles(d.subtitles),
                     server: idx,
                     servers: usable.length
                 };

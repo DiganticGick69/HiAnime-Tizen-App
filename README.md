@@ -9,7 +9,7 @@ A Netflix-style TV app for browsing and watching anime from HiAnime (`hianimes.s
 - **Details:** synopsis, score, status, air dates and genres. You can switch between **SUB and DUB**, and pick episodes from a grid split into ranges for long series like One Piece.
 - **Watch tracking:** every episode shows as watched (✓), in progress (progress bar) or not watched. You can mark episodes manually with the RED button.
 - **Watched tab:** everything you've started, with progress, so you can pick up where you left off.
-- **Player:** Samsung's native AVPlay with resume, ±10 s seeking, previous/next episode, auto-play of the next episode, sub/dub switching mid-episode and subtitles.
+- **Player:** Samsung's native AVPlay with resume, ±10 s seeking, previous/next episode, auto-play of the next episode, sub/dub switching mid-episode and English or Brazilian Portuguese subtitles.
 - **No ads:** the site's pages and player scripts never run. The app reads only the data it needs.
 
 ## How it works
@@ -68,7 +68,7 @@ Previewing in a desktop browser shows the UI, but videos won't play there: a des
 | Player (controls hidden) | OK | Pause / play |
 | Player | ⏯ ⏪ ⏩ ⏹ | Media keys |
 | Player | CH▲ / CH▼ | Next / previous episode |
-| Player | RED / GREEN / YELLOW | Switch SUB↔DUB / turn subtitles on or off / try the next server |
+| Player | RED / GREEN / YELLOW | Switch SUB↔DUB / subtitles English → Português (BR) → off / try the next server |
 | Player | Back | Hide the controls, then exit the player |
 
 An episode counts as **watched** once you pass 90% of it.
@@ -76,7 +76,7 @@ An episode counts as **watched** once you pass 90% of it.
 ## Limits
 
 - **Only zokoanime player links are used.** Episodes also list megaplay links, which the app can't play yet. In testing, every episode checked had a zokoanime link.
-- **Subtitles use the first track,** which is English on the episodes checked. There's no language picker yet.
+- **Subtitles are English or Brazilian Portuguese only** (English by default; the choice is remembered). Episodes carry up to ~40 tracks in random order and almost all are tagged `en` whatever the language, so tracks are picked by label (`subRank` in `tizen-app/js/api.js`). "Forced" tracks (signs only) and European Portuguese are skipped. Some episodes have no Portuguese track, and a few have no soft subtitles at all.
 - If the player site changes how it encodes the stream link, episodes fail with "Could not read the stream". The decoder is `zokoDecode` in `tizen-app/js/api.js`.
 
 ## Project layout

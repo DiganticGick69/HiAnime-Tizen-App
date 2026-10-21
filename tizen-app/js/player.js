@@ -104,7 +104,8 @@ function loadHlsJs(cb) {
 var Player = (function () {
     var root, osd, subBox, spinner, nextUp;
     var engine = null;
-    var state = null;      // {anime, episode, lang, server, servers, cues, ccOn}
+    var state = null;      // {anime, episode, lang, server, servers, cues, tracks, track}
+    var SUB_PREF = 'hianime.subs';  // 'en' (default), 'pt' or 'off'
     var osdTimer = null, saveTimer = null, nextTimer = null;
     var cueIdx = 0;
     var active = false;
@@ -174,7 +175,7 @@ var Player = (function () {
         root.classList.remove('hidden');
         document.getElementById('sidebar').classList.add('hidden');
         Nav.setScope(root);
-        state = { anime: opts.anime, episode: opts.episode, lang: opts.lang || 'sub', server: 0, servers: 1, cues: [], ccOn: true };
+        state = { anime: opts.anime, episode: opts.episode, lang: opts.lang || 'sub', server: 0, servers: 1, cues: [], tracks: [], track: null };
         makeEngine();
         start(opts.startAt || 0);
     }
@@ -212,17 +213,46 @@ var Player = (function () {
         });
     }
 
+    function subPref() {
+        try { return localStorage.getItem(SUB_PREF) || 'en'; } catch (e) { return 'en'; }
+    }
+
+    /* tracks: [{lang: 'en'|'pt', label, url}], already limited to English and Brazilian Portuguese. */
     function loadSubs(tracks, referer) {
-        var cc = $('[data-act="cc"]');
-        cc.classList.toggle('hidden', !tracks.length);
-        if (!tracks.length) return;
+        state.tracks = tracks;
+        state.referer = referer;
+        $('[data-act="cc"]').classList.toggle('hidden', !tracks.length);
+        applySubs();
+    }
+
+    function applySubs() {
+        var cc = $('[data-act="cc"]'), pref = subPref(), tracks = state.tracks, t = null;
+        state.cues = []; cueIdx = 0; subBox.textContent = '';
+        if (pref !== 'off') {
+            for (var i = 0; i < tracks.length; i++) if (tracks[i].lang === pref) t = tracks[i];
+            t = t || tracks[0] || null;
+        }
+        state.track = t;
+        cc.textContent = t ? 'CC ' + t.lang.toUpperCase() : 'CC';
+        cc.classList.toggle('off', !t);
+        if (!t) return;
         var token = state.token;
-        Api.subtitles(tracks[0].url, referer).then(function (d) {
-            if (!state || token !== state.token) return;
+        Api.subtitles(t.url, state.referer).then(function (d) {
+            if (!state || token !== state.token || state.track !== t) return;
             state.cues = (d && d.cues) || [];
             cueIdx = 0;
-        }).catch(function () { cc.classList.add('hidden'); });
-        cc.classList.toggle('off', !state.ccOn);
+        }).catch(function () { if (state && state.track === t) UI.toast('Subtitles unavailable'); });
+    }
+
+    /* CC / GREEN: English -> Portuguese (BR) -> off, over the languages this episode has. */
+    function cycleSubs() {
+        if (!state.tracks.length) { UI.toast('No English or Portuguese subtitles for this episode'); return; }
+        var order = state.tracks.map(function (t) { return t.lang; }).concat(['off']);
+        var cur = state.track ? state.track.lang : 'off';
+        var next = order[(order.indexOf(cur) + 1) % order.length];
+        try { localStorage.setItem(SUB_PREF, next); } catch (e) { /* not remembered */ }
+        applySubs();
+        UI.toast(state.track ? 'Subtitles: ' + state.track.label : 'Subtitles off');
     }
 
     var lastT = -1;
@@ -231,7 +261,7 @@ var Player = (function () {
         if (t !== lastT && lastT >= 0) spinner.classList.add('hidden');
         lastT = t;
         updateOsd(t);
-        if (!state.ccOn || !state.cues.length) { if (subBox.textContent) subBox.textContent = ''; return; }
+        if (!state.cues.length) { if (subBox.textContent) subBox.textContent = ''; return; }
         var cues = state.cues;
         if (cueIdx >= cues.length || cues[cueIdx].start > t) cueIdx = 0;
         while (cueIdx < cues.length && cues[cueIdx].end < t) cueIdx++;
@@ -340,11 +370,7 @@ var Player = (function () {
             state.lang = want; state.server = 0; state.retried = false;
             start(t);
         }
-        else if (act === 'cc') {
-            state.ccOn = !state.ccOn;
-            $('[data-act="cc"]').classList.toggle('off', !state.ccOn);
-            if (!state.ccOn) subBox.textContent = '';
-        }
+        else if (act === 'cc') cycleSubs();
         else if (act === 'server') { save(true); state.retried = false; switchServer(); }
         updateOsd(engine.time());
     }
