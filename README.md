@@ -4,8 +4,8 @@ A Netflix-style TV app for browsing and watching anime from HiAnime (`hianimes.s
 
 > **Status: moving to a TV-only app.** The current version needs a small backend server on your network (described below). The goal is an app that runs entirely on the TV, with no server.
 > Browsing, search, details and watch history can all run on the TV. Video is the open question: the video hosts only accept requests carrying their player's Referer header, which a TV app normally can't send.
-> The [`tv-playback-test/`](tv-playback-test/) app checks which playback method works on the real TV, and its results decide how the TV-only version plays episodes.
-> So far everything has been tested in a desktop browser only, not on the TV.
+> The [`tv-playback-test/`](tv-playback-test/) app checked this on the real TV: **AVPlay can play the streams directly** (the Referer goes in through AVPlay's `COOKIE` property), and subtitles download through Tizen's download API. See its [results](tv-playback-test/README.md#results-on-the-un55ru7100-tizen-50-2026-10-21).
+> The main app has so far been tested in a desktop browser only, not on the TV.
 
 - **Browse:** a spotlight banner, Continue Watching, Recommended for You, Trending, Latest Episodes, Most Popular, New on HiAnime, and category rows (Isekai, Action, Fantasy, Romance, Sci-Fi, and more).
 - **Search:** an on-screen keyboard driven by the remote, with live results.

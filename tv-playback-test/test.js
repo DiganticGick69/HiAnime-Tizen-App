@@ -8,6 +8,11 @@ var ZOKO_KEY = 'otaku-embed-v1';
 
 var links = null;   // { zoko: url, mega: url } for episode 1 (sub)
 var m3u8 = null;    // stream URL decoded from the zokoanime page
+var subUrl = null;  // first subtitle (.vtt) URL from the same page
+// The video host only answers requests with this Referer. Browsers can't set it, but
+// AVPlay copies its COOKIE property into the request headers verbatim, so a CRLF in
+// the value adds a header line (also works with USER_AGENT).
+var REFERER = 'https://zokoanime.video/';
 var running = null; // { stop: fn, confirm: fn } for the test on screen
 var focusIdx = 0;
 
@@ -17,7 +22,8 @@ var TESTS = [
     { name: 'Fetch stream playlist directly (no Referer)', run: testFetchPlaylist },
     { name: 'Play stream with Samsung AVPlay', run: testAvplay },
     { name: 'zokoanime player inside the app', run: function (done) { testIframe('zoko', done); } },
-    { name: 'megaplay player inside the app', run: function (done) { testIframe('mega', done); } }
+    { name: 'megaplay player inside the app', run: function (done) { testIframe('mega', done); } },
+    { name: 'Subtitles via Tizen download (with Referer)', run: testSubtitles }
 ];
 
 function $(id) { return document.getElementById(id); }
@@ -90,6 +96,7 @@ function testDecode(done) {
             try { d = zokoDecode(html); } catch (e) { log('decode error: ' + e); }
             if (d && d.src) {
                 m3u8 = d.src;
+                subUrl = d.subtitles && d.subtitles[0] && d.subtitles[0].src;
                 log('stream: ' + d.src);
                 done(true, 'got link');
             } else {
@@ -133,8 +140,7 @@ function testAvplay(done) {
     try {
         av.open(m3u8);
         av.setDisplayRect(0, 0, 1920, 1080);
-        // Undocumented property some firmwares accept; harmless if not.
-        try { av.setStreamingProperty('CUSTOM_MESSAGE', 'Referer: https://zokoanime.video/'); } catch (e) { log('CUSTOM_MESSAGE not accepted'); }
+        av.setStreamingProperty('COOKIE', 'a=1\r\nReferer: ' + REFERER);
         av.setListener({
             oncurrentplaytime: function (ms) {
                 last = ms;
@@ -150,6 +156,27 @@ function testAvplay(done) {
         log('AVPlay exception: ' + e);
         finish(false, String(e));
     }
+}
+
+/* 7 */
+function testSubtitles(done) {
+    if (!subUrl) { done(false, 'run test 2 first'); return; }
+    if (typeof tizen === 'undefined' || !tizen.download) { done(false, 'no download API'); return; }
+    var name = 'sub' + Date.now() + '.vtt';
+    var req = new tizen.DownloadRequest(subUrl, 'wgt-private-tmp', name, 'ALL', { Referer: REFERER });
+    tizen.download.start(req, {
+        oncompleted: function (id, path) {
+            log('subtitle saved: ' + path);
+            tizen.filesystem.resolve('wgt-private-tmp/' + name, function (f) {
+                f.readAsText(function (txt) {
+                    var cues = (txt.match(/-->/g) || []).length;
+                    log('subtitle: ' + cues + ' cues, ' + txt.slice(0, 80).replace(/\n/g, ' '));
+                    done(txt.indexOf('WEBVTT') === 0 && cues > 0, cues + ' cues');
+                }, function (e) { done(false, 'read: ' + e.message); }, 'UTF-8');
+            }, function (e) { done(false, 'resolve: ' + e.message); }, 'r');
+        },
+        onfailed: function (id, e) { log('download failed: ' + e.name + ' ' + e.message); done(false, e.name); }
+    });
 }
 
 /* 5, 6 */
@@ -243,7 +270,7 @@ document.addEventListener('keydown', function (e) {
     if (k === 38) focus(focusIdx - 1);
     else if (k === 40) focus(focusIdx + 1);
     else if (k === 13) runTest(focusIdx);
-    else if (k >= 49 && k <= 54) runTest(k - 49);
+    else if (k >= 49 && k <= 48 + TESTS.length) runTest(k - 49);
     else if (k === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* desktop */ } }
     else return;
     e.preventDefault();
@@ -253,7 +280,7 @@ window.onload = function () {
     var m = /Chrome\/([\d.]+)/.exec(navigator.userAgent);
     $('ua').textContent = 'Browser engine: Chromium ' + (m ? m[1] : '?') + ' · ' +
         (typeof webapis !== 'undefined' && webapis.avplay ? 'AVPlay available' : 'no AVPlay (not a Samsung TV)') +
-        ' · Run tests 1 → 6 in order (Up/Down + OK, or number keys).';
+        ' · Run tests 1 → 7 in order (Up/Down + OK, or number keys).';
     log(navigator.userAgent);
     render();
 };

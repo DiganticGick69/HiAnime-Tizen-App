@@ -5,29 +5,7 @@
 <meta name="viewport" content="width=1920, height=1080, user-scalable=no">
 <title>HiAnime Test</title>
 <script src="$WEBAPIS/webapis/webapis.js"></script>
-<style>
-    html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #201f31; color: #fff;
-                 font-family: "SamsungOne", Arial, sans-serif; }
-    #panel { position: absolute; left: 80px; top: 50px; right: 80px; z-index: 5; }
-    h1 { color: #ffbade; font-size: 44px; margin: 0 0 6px; }
-    .info { color: #aaaabb; font-size: 22px; margin-bottom: 26px; }
-    .test { display: flex; align-items: center; height: 84px; margin-bottom: 14px; padding: 0 30px; border-radius: 14px;
-            background: #2b2a3c; font-size: 28px; }
-    .test.focused { box-shadow: 0 0 0 5px #ffbade; }
-    .num { width: 60px; color: #ffbade; font-weight: 700; }
-    .name { flex: 1; }
-    .res { font-weight: 700; min-width: 220px; text-align: right; }
-    .PASS { color: #b0e3af; } .FAIL { color: #ff8a8a; } .RUN { color: #ffd27a; } .WAIT { color: #888; }
-    #log { margin-top: 18px; font-size: 20px; color: #ccc; white-space: pre-wrap; height: 300px; overflow: hidden;
-           background: #14131f; border-radius: 12px; padding: 16px 22px; font-family: monospace; }
-    #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 10; background: #000; display: none; }
-    #stage.on { display: block; }
-    #stage iframe { width: 1920px; height: 1080px; border: 0; }
-    #av { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
-    #hud { position: absolute; left: 40px; bottom: 40px; z-index: 12; background: rgba(0,0,0,.75); padding: 16px 26px;
-           border-radius: 12px; font-size: 26px; display: none; }
-    #hud.on { display: block; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="panel">

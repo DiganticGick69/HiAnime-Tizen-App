@@ -15,7 +15,7 @@ Or in Tizen Studio: **File → Import → Tizen → Tizen Project**, pick the `t
 
 ## Use
 
-Open **HiAnime Test** from Apps and run tests 1 to 6 **in order** (Up/Down + OK, or the number keys).
+Open **HiAnime Test** from Apps and run tests 1 to 7 **in order** (Up/Down + OK, or the number keys).
 For tests 5 and 6 the player opens full screen: press **OK** if video is playing, **Back** if not.
 
 Then send back a photo of the screen. The log at the bottom matters too.
@@ -25,9 +25,24 @@ Then send back a photo of the screen. The log at the bottom matters too.
 | 1 | The TV can read the catalog directly |
 | 2 | The TV can read the zokoanime episode page and pull out the stream link |
 | 3 | The video host accepts requests from the TV without a Referer header (probably FAIL) |
-| 4 | Samsung's own player (AVPlay) can play that stream |
+| 4 | Samsung's own player (AVPlay) can play that stream, with the Referer added through the `COOKIE` property |
 | 5 | The site's zokoanime player runs inside the app |
 | 6 | The site's megaplay player runs inside the app |
+| 7 | The subtitle file downloads with the Referer (Tizen download API) and can be read back |
+
+## Results on the UN55RU7100 (Tizen 5.0, 2026-10-21)
+
+| Test | Result | Notes |
+| --- | --- | --- |
+| 1 | PASS | Catalog API answers the TV directly (CORS is fine) |
+| 2 | PASS | Embed page fetched and `window.__P` decoded on the TV |
+| 3 | FAIL (403, expected) | The video host (`hls.dramahot.top`) wants exactly `Referer: https://zokoanime.video/`. No Referer, another site's Referer, or `Origin` alone all get 403. |
+| 4 | **PASS** | AVPlay plays once the Referer goes in through `setStreamingProperty('COOKIE', 'a=1\r\nReferer: https://zokoanime.video/')` (the value is copied into the request headers as-is, so the CRLF adds a header line; `USER_AGENT` works the same way). Without it: `PLAYER_ERROR_CONNECTION_FAILED`. Checked: 1080p adaptive, seek to 10:00, 23-min episode. `|Referer=` URL suffixes, `CUSTOM_MESSAGE` and `HTTP_HEADER` don't work. |
+| 5 | FAIL | The zokoanime player needs `import.meta` (Chromium 64+); Chromium 63 can't parse it, so the frame stays black. |
+| 6 | Unconfirmed | No messages from the megaplay player and no screenshot; not needed now. |
+| 7 | PASS | Subtitles (`.vtt`, same host, same Referer rule) download with `tizen.DownloadRequest(url, 'wgt-private-tmp', name, 'ALL', {Referer})` and read back through `tizen.filesystem`. `setExternalSubtitlePath` only takes local files, and XHR can't set Referer. |
+
+So the TV-only app uses the **Test 4 PASS** route below, with subtitles from test 7's method, drawn by the app's own subtitle overlay.
 
 ## Next step (notes for Claude)
 
