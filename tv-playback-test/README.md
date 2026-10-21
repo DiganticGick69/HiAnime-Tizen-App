@@ -46,6 +46,8 @@ So the TV-only app uses the **Test 4 PASS** route below, with subtitles from tes
 
 ## Next step (notes for Claude)
 
+> **Done (2026-10-21):** `tizen-app/` is now TV-only, using the Test 4 route with test 7's subtitle download. The notes below are kept for reference.
+
 When the user shares the test results (a photo or a list of PASS/FAIL), rebuild `tizen-app/` as a **TV-only app with no backend**:
 
 - **Always TV-only (whatever the results):** catalog, search, categories, details and images come straight from the site's API (`https://animehot.cc/api`, found through the mirror domain).

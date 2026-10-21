@@ -132,7 +132,7 @@ var App = (function () {
         }
         Player.init();
         document.addEventListener('keydown', onKey);
-        go(Api.getBase() ? 'home' : 'settings');
+        go('home');
     }
 
     return {

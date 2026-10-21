@@ -1,6 +1,7 @@
 /*
  * Full-screen player. Uses Samsung AVPlay on the TV (hardware HLS decoding) and
- * falls back to <video> + hls.js when previewing in a desktop browser.
+ * falls back to <video> + hls.js when previewing in a desktop browser (which can't
+ * send the Referer the video host wants, so desktop preview won't play).
  */
 var Engines = {
     /* Samsung AVPlay — the TV's native player. */
@@ -11,12 +12,15 @@ var Engines = {
         return {
             name: 'avplay',
             on: function (h) { handlers = h; },
-            load: function (url, startSec) {
+            load: function (url, startSec, referer) {
                 try { av.stop(); av.close(); } catch (e) { /* nothing open */ }
                 cur = startSec || 0; paused = false;
                 av.open(url);
                 av.setDisplayRect(0, 0, 1920, 1080);
                 av.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
+                // AVPlay has no header API, but it copies USER_AGENT into the request as-is,
+                // so a CRLF adds the Referer line the video host checks (verified on Tizen 5.0).
+                if (referer) av.setStreamingProperty('USER_AGENT', navigator.userAgent + '\r\nReferer: ' + referer);
                 av.setListener({
                     onbufferingstart: function () { if (handlers.buffering) handlers.buffering(true); },
                     onbufferingcomplete: function () { if (handlers.buffering) handlers.buffering(false); },
@@ -188,16 +192,16 @@ var Player = (function () {
         $('.osd-title').textContent = state.anime.title;
         $('.osd-sub').textContent = 'Episode ' + state.episode + ' · ' + state.lang.toUpperCase();
         $('[data-act="lang"]').textContent = state.lang === 'sub' ? 'SUB' : 'DUB';
-        busy(true, 'Finding stream · ads & pop-ups blocked');
+        busy(true, 'Finding stream…');
         var token = state.token = {};
         Api.stream(state.anime.slug, state.episode, state.lang, state.server).then(function (s) {
             if (token !== state.token || !active) return;
             state.server = s.server; state.servers = s.servers;
             $('[data-act="server"]').textContent = 'Server ' + (s.server + 1);
             $('[data-act="server"]').classList.toggle('hidden', s.servers < 2);
-            loadSubs(s.subtitles || []);
+            loadSubs(s.subtitles || [], s.referer);
             busy(true, 'Loading video…');
-            engine.load(Api.abs(s.url), startAt);
+            engine.load(s.url, startAt, s.referer);
             if (saveTimer) clearInterval(saveTimer);
             saveTimer = setInterval(function () { save(false); }, 10000);
         }).catch(function (e) {
@@ -208,11 +212,13 @@ var Player = (function () {
         });
     }
 
-    function loadSubs(tracks) {
+    function loadSubs(tracks, referer) {
         var cc = $('[data-act="cc"]');
         cc.classList.toggle('hidden', !tracks.length);
         if (!tracks.length) return;
-        Api.subtitles(tracks[0].url).then(function (d) {
+        var token = state.token;
+        Api.subtitles(tracks[0].url, referer).then(function (d) {
+            if (!state || token !== state.token) return;
             state.cues = (d && d.cues) || [];
             cueIdx = 0;
         }).catch(function () { cc.classList.add('hidden'); });

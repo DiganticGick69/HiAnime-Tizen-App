@@ -582,52 +582,41 @@ Views.settings = {
         var pad = UI.h('div', 'page-pad');
         pad.innerHTML =
             '<div class="page-title">Settings</div>' +
-            '<div class="status-box">Checking backend…</div>' +
-            '<div class="form-row"><label>Backend address (the computer running the HiAnime backend)</label>' +
-            '<input id="set-backend" class="focusable" data-group="form" type="text" placeholder="192.168.1.50:8787">' +
-            '<div class="form-help">Run <b>./scripts/run-backend.sh</b> on a PC or Raspberry Pi on your network and enter its IP here.</div></div>' +
+            '<div class="status-box">Checking the site…</div>' +
             '<div class="form-row"><label>Site mirrors (comma separated, tried first)</label>' +
             '<input id="set-domains" class="focusable" data-group="form" type="text" placeholder="hianimes.se, hianime.at">' +
-            '<div class="form-help">When the site moves to a new domain, add it here. The backend finds the catalog API automatically.</div></div>';
+            '<div class="form-help">When the site moves to a new domain, add it here. The app finds the catalog API automatically.</div></div>';
         var save = UI.h('div', 'btn primary focusable', 'Save & test');
-        var filters = UI.h('div', 'btn focusable', 'Update ad-block filters');
-        save.setAttribute('data-group', 'form-btn'); filters.setAttribute('data-group', 'form-btn');
-        pad.appendChild(save); pad.appendChild(filters);
+        var clear = UI.h('div', 'btn focusable', 'Clear watch history');
+        save.setAttribute('data-group', 'form-btn'); clear.setAttribute('data-group', 'form-btn');
+        pad.appendChild(save); pad.appendChild(clear);
         inner.appendChild(pad);
         c.appendChild(inner);
 
-        var backend = pad.querySelector('#set-backend');
         var domains = pad.querySelector('#set-domains');
-        backend.value = Api.getBase().replace(/^http:\/\//, '');
-        [backend, domains].forEach(function (inp) { inp._enter = function () { inp.focus(); }; });
+        domains.value = Api.userDomains().join(', ');
+        domains._enter = function () { domains.focus(); };
         var status = pad.querySelector('.status-box');
 
-        function refresh() {
-            Api.status().then(function (s) {
-                status.innerHTML = 'Backend: <b>connected</b> (' + UI.esc(Api.getBase()) + ')<br>' +
-                    'Active mirror: <b>' + UI.esc(s.site || 'none') + '</b> · Catalog API: <b>' + UI.esc(s.api || 'none') + '</b><br>' +
-                    'Ad-block filters updated: <b>' + (s.filtersLoadedAt ? new Date(s.filtersLoadedAt * 1000).toLocaleString() : 'never') + '</b>';
-                if (!domains.value) domains.value = s.domains.slice(0, 4).join(', ');
-            }).catch(function (e) {
-                status.innerHTML = 'Backend: <b>not reachable</b> — ' + UI.esc(e.message);
-            });
+        function show(s) {
+            status.innerHTML = 'Site: <b>reachable</b><br>' +
+                'Active mirror: <b>' + UI.esc(s.site || 'none (using a known API)') + '</b> · Catalog API: <b>' + UI.esc(s.api || 'none') + '</b><br>' +
+                'Everything runs on this TV. Watch history is stored only here.';
         }
+        function fail(e) { status.innerHTML = 'Site: <b>not reachable</b> — ' + UI.esc(e.message); }
 
         save._enter = function () {
-            Api.setBase(backend.value);
-            status.textContent = 'Testing…';
-            Api.status().then(function () {
-                var list = domains.value.split(',').map(function (d) { return d.trim(); }).filter(Boolean);
-                return list.length ? Api.setDomains(list) : null;
-            }).then(function () { UI.toast('Saved'); refresh(); })
-              .catch(function (e) { status.innerHTML = 'Backend: <b>not reachable</b> — ' + UI.esc(e.message); });
+            status.textContent = 'Testing mirrors…';
+            var list = domains.value.split(',').map(function (d) { return d.trim(); }).filter(Boolean);
+            Api.setDomains(list).then(function (s) { UI.toast('Saved'); show(s); }).catch(fail);
         };
-        filters._enter = function () {
-            UI.toast('Updating filter lists…');
-            Api.refreshFilters().then(function () { UI.toast('Ad-block filters updated'); refresh(); })
-                .catch(function (e) { UI.toast(e.message); });
+        var armed = 0;
+        clear._enter = function () {
+            if (Date.now() - armed > 4000) { armed = Date.now(); UI.toast('Press again to clear all watch history'); return; }
+            armed = 0;
+            Api.clearHistory().then(function () { UI.toast('Watch history cleared'); });
         };
-        refresh();
-        Nav.focus(Api.getBase() ? save : backend);
+        Api.status().then(show).catch(fail);
+        Nav.focus(save);
     }
 };
